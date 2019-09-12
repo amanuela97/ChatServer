@@ -14,10 +14,8 @@ class ChatServer {
                 val s = serverSocket.accept()
                 println("accepted")
                 val ob = ChatConnector(s.getInputStream(), s.getOutputStream())
-                // add observer to observers collection in chat history
-                ChatHistory.registerObserver(ob)
-                // start thread of chatConnector
-                val t = Thread(ob)
+                ChatHistory.registerObserver(ob) // add observer to observers collection in chat history
+                val t = Thread(ob) // start thread of chatConnector
                 t.start()
             } catch (e: Exception){
                 e.printStackTrace()
