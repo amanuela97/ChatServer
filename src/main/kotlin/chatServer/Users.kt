@@ -12,8 +12,8 @@ object Users {
         userNames.remove(name)
     }
 
-    fun checkIfUserExist(){
-
+    fun checkIfUserExist(name:String): Boolean{
+        return userNames.contains(name)
     }
 
     override fun toString(): String{

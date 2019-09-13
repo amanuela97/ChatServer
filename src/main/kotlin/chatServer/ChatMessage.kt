@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 import java.time.LocalDateTime
 
 @Serializable
-class ChatMessage (private val message: String, private val userName: String, private val timeDate: LocalDateTime) {
+class ChatMessage (private val message: String, private val userName:String = "Amanuel", private val timeDate: LocalDateTime = LocalDateTime.now()) {
 
     //message structure
     override fun toString(): String {
