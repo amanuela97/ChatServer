@@ -14,6 +14,8 @@ class ChatConnector(input: InputStream, output: OutputStream): Runnable, ChatHis
     private val out = PrintWriter(output,true)
 
     override fun run(){
+        ChatHistory.registerObserver(this)
+        out.println("Welcome to chat messenger")
         while(stateOfConnection) {
             val userInput = ins.nextLine()
             val message = ChatMessage(userInput)
