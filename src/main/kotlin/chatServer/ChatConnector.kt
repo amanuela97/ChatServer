@@ -21,7 +21,7 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
     private var signedIn = false
     private var connected = true
     private var inp:String = " "
-    private var userCommand:List<String> = listOf<String>()
+    private var userCommand:List<String> = listOf()
 
     @ImplicitReflectionSerializer
     override fun run(){
