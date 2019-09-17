@@ -4,16 +4,16 @@ import java.lang.Exception
 import java.net.ServerSocket
 
 class ChatServer {
+    private val serverSocket = ServerSocket(30000,2)
 
     fun server(){
-        val serverSocket = ServerSocket(30000,2)
-        println("ChatServer is listening on port " + serverSocket.localPort)
-        println("accepting")
+        println("ChatServer is now listening on port " + serverSocket.localPort)
         while(true) {
             try {
+                println("accepting")
                 val s = serverSocket.accept()
                 println("new connection " + s.inetAddress.hostAddress + " " + s.port)
-                val t = Thread(ChatConnector(s.getInputStream(), s.getOutputStream()))
+                val t = Thread(ChatConnector(s.getInputStream(), s.getOutputStream(), s))
                 t.start()
             } catch (e: Exception){
                 e.printStackTrace()

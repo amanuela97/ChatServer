@@ -3,11 +3,12 @@ package chatServer
 
 object ChatHistory: ChatHistoryObservable {
 
-    private val Messages = mutableListOf<ChatMessage>()
+    private val messages = mutableListOf<ChatMessage>()
     private val chatObservers = mutableListOf<ChatHistoryObserver>()
+    private var messageHistory:String = ""
 
     override fun insert(message: ChatMessage){
-        Messages.add(message)
+        messages.add(message)
     }
 
     override fun registerObserver(observer: ChatHistoryObserver) {
@@ -23,6 +24,8 @@ object ChatHistory: ChatHistoryObservable {
     }
 
     override fun toString(): String{
-        return Messages.toString()
+        //nicely formatting string
+        messages.forEach { messageHistory  += "\n $it" }
+        return messageHistory
     }
 }

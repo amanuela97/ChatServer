@@ -3,13 +3,18 @@ package chatServer
 object Users {
 
     private val userNames = HashSet<String>()
+    private var userList:String = ""
 
-    fun addUser(name: String){
-        userNames.add(name)
+    fun addUser(name: String): Boolean{
+        if(!checkIfUserExist(name)) {
+            userNames.add(name)
+            return true
+        }
+        return false
     }
 
     fun removeUser(name: String){
-        userNames.remove(name)
+        if (checkIfUserExist(name)) userNames.remove(name)
     }
 
     fun checkIfUserExist(name:String): Boolean{
@@ -17,6 +22,8 @@ object Users {
     }
 
     override fun toString(): String{
-        return userNames.toString()
+        //nicely formatting string
+        userNames.forEach { userList += "\n $it" }
+        return userList
     }
 }
