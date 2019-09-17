@@ -1,10 +1,16 @@
 package chatServer
 
 
+
+import kotlinx.serialization.ImplicitReflectionSerializer
+import kotlinx.serialization.json.*
+import kotlinx.serialization.parse
+import kotlinx.serialization.stringify
 import java.io.InputStream
 import java.io.OutputStream
 import java.io.PrintWriter
 import java.net.Socket
+import java.time.LocalDateTime
 import java.util.*
 
 class ChatConnector(input: InputStream, output: OutputStream, private var socket: Socket): Runnable, ChatHistoryObserver {
@@ -14,8 +20,10 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
     private var userName:String = ""
     private var signedIn = false
     private var connected = true
-    var inp:String = " "
+    private var inp:String = " "
+    private var userCommand:List<String> = listOf<String>()
 
+    @ImplicitReflectionSerializer
     override fun run(){
         ChatHistory.registerObserver(this)
         out.println("Welcome to chat messenger")
@@ -32,7 +40,7 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
     private fun nothingHappens(){}
 
     override fun newMessage(message: ChatMessage) {
-        out.println("$message")
+        out.println("$message at ${LocalDateTime.now()}")
     }
 
     private fun commandInstructions() {
@@ -54,14 +62,20 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
         println("Connection Closed")
     }
 
+    @ImplicitReflectionSerializer
     private fun interpretInput(input: String){
-        if (!signedIn){askUserToSignIn(input)}
-        else{ifUserHasSignedIn(input)}
+        if (!signedIn){
+            askUserToSignIn(input)
+        }
+        else{
+            ifUserHasSignedIn(input)
+        }
+
 
     }
     private fun askUserToSignIn(input: String){
-        val userCommand = input.split(" ")
-        if (userCommand[0].startsWith(":") && userCommand.size == 2 && userCommand[0] == ":user"){
+        userCommand = input.split(" ")
+        if (userCommand.size == 2 && userCommand[0] == ":user"){
             userName = userCommand[1]
             if (Users.checkIfUserExist(userName)){
                 out.println("User name $userName is taken: Try a different user name: ")
@@ -72,10 +86,12 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
                 signedIn = true
                 println("User $userName has signed in")
             }
-        }else{
+        }
+        else {
             out.println("User name not set. Use command :user [username] to set it")
         }
     }
+    @ImplicitReflectionSerializer
     private fun ifUserHasSignedIn(input:String){
         when{
             input.startsWith(":")-> handleCommand(input)
@@ -84,27 +100,42 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
 
     }
     private fun handleCommand(input:String) {
-        val userCommand = input.split(" ")
+        userCommand = input.split(" ")
         when {
-            userCommand[0] == "users" -> out.println(Users.toString())
-            userCommand[0] == "messages" -> out.println(ChatHistory.toString())
-            userCommand[0] == "exit" -> userExit()
-
+            userCommand[0] == ":users" -> out.println(Users.toString())
+            userCommand[0] == ":messages" -> out.println(ChatHistory.toString())
+            userCommand[0] == ":exit" -> userExit()
+            userCommand[0] == ":user" -> out.println("user already set to $userName")
+            else -> out.println("Unknown command: $userCommand")
         }
     }
 
+    @ImplicitReflectionSerializer
     private fun sendMessage(input:String){
-        val message = ChatMessage(input,userName)
-        //val mm = Json.parse(message.serializer(),input)
-        ChatHistory.insert(message)
-        ChatHistory.notifyObservers(message)
+        val json = Json(JsonConfiguration.Stable)
+
+        //serialize/stringify incoming message for now
+        val jsonData = json.stringify(ChatMessage(input,userName))
+        //parse incoming message into object of ChatMessage
+        val messageObject = json.parse<ChatMessage>(jsonData)
+
+        //add message to message list
+        ChatHistory.insert(messageObject)
+        //broadcast to all observers that are logged in
+        if (this.userName != "")ChatHistory.notifyObservers(messageObject)
+
     }
 
     private fun userExit(){
         println("$userName exited chat")
         Users.removeUser(userName)
         connected = false
+        socket.close()
+        println("$userName exited")
     }
 
 
 }
+
+
+

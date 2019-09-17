@@ -23,7 +23,7 @@ object Users {
 
     override fun toString(): String{
         //nicely formatting string
-        userNames.forEach { userList += "\n $it" }
+        userNames.forEach { userList += "$it\r\n" }
         return userList
     }
 }
