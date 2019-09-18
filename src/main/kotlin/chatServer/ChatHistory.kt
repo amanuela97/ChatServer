@@ -9,6 +9,7 @@ object ChatHistory: ChatHistoryObservable {
 
     override fun insert(message: ChatMessage){
         messages.add(message)
+        notifyObservers(message)
     }
 
     override fun registerObserver(observer: ChatHistoryObserver) {
@@ -20,7 +21,8 @@ object ChatHistory: ChatHistoryObservable {
     }
 
     override fun notifyObservers(message: ChatMessage) {
-        chatObservers.forEach{it.newMessage(message)}
+        // notify all except the person sending the message
+        chatObservers.forEach{if (it.getUserName() != message.userName ) it.newMessage(message)}
     }
 
     override fun toString(): String{

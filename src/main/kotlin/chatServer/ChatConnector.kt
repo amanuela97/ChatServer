@@ -5,12 +5,10 @@ package chatServer
 import kotlinx.serialization.ImplicitReflectionSerializer
 import kotlinx.serialization.json.*
 import kotlinx.serialization.parse
-import kotlinx.serialization.stringify
 import java.io.InputStream
 import java.io.OutputStream
 import java.io.PrintWriter
 import java.net.Socket
-import java.time.LocalDateTime
 import java.util.*
 
 class ChatConnector(input: InputStream, output: OutputStream, private var socket: Socket): Runnable, ChatHistoryObserver {
@@ -20,27 +18,100 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
     private var userName:String = ""
     private var signedIn = false
     private var connected = true
-    private var inp:String = " "
+    private var inp: String = " "
     private var userCommand:List<String> = listOf()
+
 
     @ImplicitReflectionSerializer
     override fun run(){
         ChatHistory.registerObserver(this)
+        ChatConsole.register()
         out.println("Welcome to chat messenger")
         commandInstructions()
         while(connected) {
             if (inn.hasNextLine()) inp = inn.nextLine() else closeClientConnection()
-            when(inp){
-                " "  ->  nothingHappens()
-                else -> interpretInput(inp)
+            val json = Json(JsonConfiguration.Stable)
+            val message = if (isJsonString(inp)) json.parse(inp) else ChatMessage("InvalidJSON","Fail")
+            when{
+                message.toString().isEmpty()  ->  nothingHappens()
+                message.toString().split(" ")[0] == "InvalidJSON" -> nothingHappens()
+                else -> interpretInput(message)
             }
         }
     }
 
     private fun nothingHappens(){}
 
+    override fun getUserName() = userName
+
+    @ImplicitReflectionSerializer
+    fun isJsonString(str:String): Boolean {
+        val json = Json(JsonConfiguration.Stable)
+        try {
+            json.parse<ChatMessage>(str)
+        } catch (e:JsonException) {
+            return false
+        }
+        return true
+    }
+
     override fun newMessage(message: ChatMessage) {
-        out.println("$message at ${LocalDateTime.now()}")
+        //if the user has not set a user name or signed in he/she will not receive a message
+        if(signedIn) out.println("$message") else nothingHappens()
+    }
+
+    private fun closeClientConnection(){
+        if(userName.isNotEmpty()){println("lost client connection to $userName")}
+        else {println("lost client connection")}
+        connected = false
+        Users.removeUser(userName)
+        socket.close()
+    }
+
+    @ImplicitReflectionSerializer
+    private fun interpretInput(message: ChatMessage){
+        if (!signedIn){
+            askUserToSignIn(message)
+        }
+        else{
+            ifUserHasSignedIn(message)
+        }
+    }
+
+    private fun askUserToSignIn(message: ChatMessage){
+        userCommand = message.toString().split(" ")
+        if (userCommand[0] == ":user" && userCommand[1] == "from"){
+            userName = userCommand[2]
+            if (Users.checkIfUserExist(userName)){
+                out.println("User name $userName is taken: Try a different user name: ")
+            }
+            else{
+                Users.addUser(userName)
+                out.println("User set to $userName.")
+                signedIn = true
+                println("User $userName has signed in")
+            }
+        }
+        else {nothingHappens()}
+    }
+    @ImplicitReflectionSerializer
+    private fun ifUserHasSignedIn(message:ChatMessage){
+        val command = message.toString()
+        when{
+            command.startsWith(":")-> handleCommand(command)
+            else -> ChatHistory.insert(message)
+            }
+
+    }
+    private fun handleCommand(input:String) {
+        userCommand = input.split(" ")
+        when {
+            userCommand[0] == ":users" -> out.println(Users.toString())
+            userCommand[0] == ":messages" -> out.println(ChatHistory.toString())
+            userCommand[0] == ":exit" -> closeClientConnection()
+            userCommand[0] == ":user" -> out.println("user already set to $userName")
+            else -> out.println("Unknown command: $userCommand")
+        }
     }
 
     private fun commandInstructions() {
@@ -53,86 +124,6 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
         out.println(message)
     }
 
-    private fun closeClientConnection(){
-        if(userName.isNotEmpty()){println("lost client connection to $userName")}
-        else {println("lost client connection")}
-        connected = false
-        Users.removeUser(userName)
-        socket.close()
-        println("Connection Closed")
-    }
-
-    @ImplicitReflectionSerializer
-    private fun interpretInput(input: String){
-        if (!signedIn){
-            askUserToSignIn(input)
-        }
-        else{
-            ifUserHasSignedIn(input)
-        }
-
-
-    }
-    private fun askUserToSignIn(input: String){
-        userCommand = input.split(" ")
-        if (userCommand.size == 2 && userCommand[0] == ":user"){
-            userName = userCommand[1]
-            if (Users.checkIfUserExist(userName)){
-                out.println("User name $userName is taken: Try a different user name: ")
-            }
-            else{
-                Users.addUser(userName)
-                out.println("User set to $userName.")
-                signedIn = true
-                println("User $userName has signed in")
-            }
-        }
-        else {
-            out.println("User name not set. Use command :user [username] to set it")
-        }
-    }
-    @ImplicitReflectionSerializer
-    private fun ifUserHasSignedIn(input:String){
-        when{
-            input.startsWith(":")-> handleCommand(input)
-            else -> sendMessage(input)
-            }
-
-    }
-    private fun handleCommand(input:String) {
-        userCommand = input.split(" ")
-        when {
-            userCommand[0] == ":users" -> out.println(Users.toString())
-            userCommand[0] == ":messages" -> out.println(ChatHistory.toString())
-            userCommand[0] == ":exit" -> userExit()
-            userCommand[0] == ":user" -> out.println("user already set to $userName")
-            else -> out.println("Unknown command: $userCommand")
-        }
-    }
-
-    @ImplicitReflectionSerializer
-    private fun sendMessage(input:String){
-        val json = Json(JsonConfiguration.Stable)
-
-        //serialize/stringify incoming message for now
-        val jsonData = json.stringify(ChatMessage(input,userName))
-        //parse incoming message into object of ChatMessage
-        val messageObject = json.parse<ChatMessage>(jsonData)
-
-        //add message to message list
-        ChatHistory.insert(messageObject)
-        //broadcast to all observers that are logged in
-        if (this.userName != "")ChatHistory.notifyObservers(messageObject)
-
-    }
-
-    private fun userExit(){
-        println("$userName exited chat")
-        Users.removeUser(userName)
-        connected = false
-        socket.close()
-        println("$userName exited")
-    }
 
 
 }

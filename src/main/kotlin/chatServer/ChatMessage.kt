@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 
 
 @Serializable
-data class ChatMessage (private val message: String, private val userName:String){
+class ChatMessage (private val message: String, val userName:String){
 
     //message structure
     override fun toString(): String {
