@@ -9,6 +9,7 @@ object ChatHistory: ChatHistoryObservable {
 
     override fun insert(message: ChatMessage){
         messages.add(message)
+        TopChatter.getMessage(message)
         notifyObservers(message)
     }
 

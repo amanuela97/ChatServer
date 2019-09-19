@@ -20,6 +20,8 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
     private var connected = true
     private var inp: String = " "
     private var userCommand:List<String> = listOf()
+    private val json = Json(JsonConfiguration.Stable)
+    private var message:ChatMessage = ChatMessage("","","")
 
 
     @ImplicitReflectionSerializer
@@ -30,13 +32,10 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
         commandInstructions()
         while(connected) {
             if (inn.hasNextLine()) inp = inn.nextLine() else closeClientConnection()
-            val json = Json(JsonConfiguration.Stable)
-            val message = if (isJsonString(inp)) json.parse(inp) else ChatMessage("InvalidJSON","Fail")
-            when{
-                message.toString().isEmpty()  ->  nothingHappens()
-                message.toString().split(" ")[0] == "InvalidJSON" -> nothingHappens()
-                else -> interpretInput(message)
-            }
+            if (isJsonString(inp) && inp.isNotEmpty()) {
+                message = json.parse(inp)
+                interpretInput(message)
+            } else nothingHappens()
         }
     }
 
@@ -46,7 +45,6 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
 
     @ImplicitReflectionSerializer
     fun isJsonString(str:String): Boolean {
-        val json = Json(JsonConfiguration.Stable)
         try {
             json.parse<ChatMessage>(str)
         } catch (e:JsonException) {
@@ -79,16 +77,17 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
     }
 
     private fun askUserToSignIn(message: ChatMessage){
-        userCommand = message.toString().split(" ")
-        if (userCommand[0] == ":user" && userCommand[1] == "from"){
-            userName = userCommand[2]
+        if (message.command == ":user"){
+            userName = message.userName
             if (Users.checkIfUserExist(userName)){
                 out.println("User name $userName is taken: Try a different user name: ")
             }
             else{
                 Users.addUser(userName)
                 out.println("User set to $userName.")
+                ChatHistory.insert(message)
                 signedIn = true
+                TopChatter.activeUsers(this)
                 println("User $userName has signed in")
             }
         }
@@ -96,20 +95,18 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
     }
     @ImplicitReflectionSerializer
     private fun ifUserHasSignedIn(message:ChatMessage){
-        val command = message.toString()
         when{
-            command.startsWith(":")-> handleCommand(command)
+            message.command.startsWith(":")-> handleCommand(message.command)
             else -> ChatHistory.insert(message)
             }
 
     }
-    private fun handleCommand(input:String) {
-        userCommand = input.split(" ")
-        when {
-            userCommand[0] == ":users" -> out.println(Users.toString())
-            userCommand[0] == ":messages" -> out.println(ChatHistory.toString())
-            userCommand[0] == ":exit" -> closeClientConnection()
-            userCommand[0] == ":user" -> out.println("user already set to $userName")
+    private fun handleCommand(command:String) {
+        when(command) {
+            ":users" -> out.println(Users.toString())
+            ":messages" -> out.println(ChatHistory.toString())
+            ":exit" -> closeClientConnection()
+            ":user" -> out.println("user already set to $userName")
             else -> out.println("Unknown command: $userCommand")
         }
     }
