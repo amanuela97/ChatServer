@@ -1,7 +1,5 @@
 package chatServer
 
-
-
 import kotlinx.serialization.ImplicitReflectionSerializer
 import kotlinx.serialization.json.*
 import kotlinx.serialization.parse
@@ -16,24 +14,22 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
     private val inn = Scanner(input)
     private val out = PrintWriter(output,true)
     private var userName:String = ""
-    private var signedIn = false
     private var connected = true
+    private var signedIn = false
     private var inp: String = " "
-    private var userCommand:List<String> = listOf()
     private val json = Json(JsonConfiguration.Stable)
-    private var message:ChatMessage = ChatMessage("","","")
 
 
     @ImplicitReflectionSerializer
     override fun run(){
         ChatHistory.registerObserver(this)
         ChatConsole.register()
-        out.println("Welcome to chat messenger")
+        TopChatter.register()
         commandInstructions()
         while(connected) {
             if (inn.hasNextLine()) inp = inn.nextLine() else closeClientConnection()
             if (isJsonString(inp) && inp.isNotEmpty()) {
-                message = json.parse(inp)
+                val message = json.parse<ChatMessage>(inp)
                 interpretInput(message)
             } else nothingHappens()
         }
@@ -54,16 +50,7 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
     }
 
     override fun newMessage(message: ChatMessage) {
-        //if the user has not set a user name or signed in he/she will not receive a message
-        if(signedIn) out.println("$message") else nothingHappens()
-    }
-
-    private fun closeClientConnection(){
-        if(userName.isNotEmpty()){println("lost client connection to $userName")}
-        else {println("lost client connection")}
-        connected = false
-        Users.removeUser(userName)
-        socket.close()
+        if(Users.checkIfUserExist(message.userName)) out.println("$message")
     }
 
     @ImplicitReflectionSerializer
@@ -83,12 +70,12 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
                 out.println("User name $userName is taken: Try a different user name: ")
             }
             else{
-                Users.addUser(userName)
-                out.println("User set to $userName.")
-                ChatHistory.insert(message)
                 signedIn = true
-                TopChatter.activeUsers(this)
                 println("User $userName has signed in")
+                ChatHistory.insert(message)
+                out.println("User set to $userName.")
+                Users.addUser(userName)
+
             }
         }
         else {nothingHappens()}
@@ -97,7 +84,7 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
     private fun ifUserHasSignedIn(message:ChatMessage){
         when{
             message.command.startsWith(":")-> handleCommand(message.command)
-            else -> ChatHistory.insert(message)
+            message.userName == this.userName -> ChatHistory.insert(message)
             }
 
     }
@@ -107,12 +94,20 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
             ":messages" -> out.println(ChatHistory.toString())
             ":exit" -> closeClientConnection()
             ":user" -> out.println("user already set to $userName")
-            else -> out.println("Unknown command: $userCommand")
+            else -> out.println("Unknown command: $command")
         }
+    }
+
+    private fun closeClientConnection(){
+        if(userName.isNotEmpty()){println("lost client connection to $userName")}
+        else {println("lost client connection")}
+        Users.removeUser(userName)
+        socket.close()
     }
 
     private fun commandInstructions() {
         val message =
+            "Welcome to chat messenger\r\n" +
             "To set user name, use command :user username\r\n" +
                     "To see users, use command :users\r\n" +
                     "To see history messages, use command :messages\r\n" +

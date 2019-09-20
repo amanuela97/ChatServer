@@ -2,15 +2,15 @@ package chatServer
 
 object Users {
 
-    private val userNames = HashSet<String>()
+    var userNames = HashSet<String>()
     private var userList:String = ""
 
-    fun addUser(name: String): Boolean{
-        if(!checkIfUserExist(name)) {
+    fun addUser(name: String){
+        if(!checkIfUserExist(name)){
             userNames.add(name)
-            return true
+            TopChatter.activeUsers()
         }
-        return false
+
     }
 
     fun removeUser(name: String){

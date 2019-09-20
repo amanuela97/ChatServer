@@ -2,35 +2,36 @@ package chatServer
 
 object TopChatter: ChatHistoryObserver {
 
-    private val activeUserList = mutableListOf<ChatHistoryObserver>()
-    private val activeMessages = mutableListOf<ChatMessage>()
-    private var activeUsers:String = ""
-    private var count:Int = 0
+    private var chatters = mutableMapOf<String,Int>()
+    private var count = 0
 
-    override fun newMessage(message: ChatMessage) {}
-
-    override fun getUserName(): String{
-        return ""
+    fun register(){
+        ChatHistory.registerObserver(this)
     }
 
-    fun activeUsers(Observer: ChatHistoryObserver){
-        activeUserList.add(Observer)
-        println("Active Users:")
-        for (u in activeUserList){
-            for (m in activeMessages){
-                if(u.getUserName() == m.userName ){
-                   if(m.userName == this.getUserName()) count++
-                    activeUsers += "${u.getUserName()} sent $count number of messages\r\n"
-                }
-            }
+    override fun getUserName(): String {
+        return "TopChatter"
+    }
+
+
+    override fun newMessage(message: ChatMessage) {
+    }
+
+    fun activeUsers(){
+        println("Top Chatters:")
+        Users.userNames.forEach { username -> ChatHistory.messages.forEach {message ->
+            if ( message.userName == username)count++
         }
-
-        println(activeUsers)
-
+            if (chatters.containsKey(username))chatters.replace(username, count) else chatters[username] = count
+            count = 0
+        }
+        val sortedChatters = chatters.toList().sortedByDescending{ (_, value) -> value }.take(4).toMap()
+        for (chatter in sortedChatters){
+            println("${chatter.key} sent ${chatter.value} message")
+        }
     }
-    fun getMessage(message: ChatMessage){
-        activeMessages.add(message)
-    }
+
+
 
 
 

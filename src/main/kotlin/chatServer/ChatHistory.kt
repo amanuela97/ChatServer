@@ -3,13 +3,12 @@ package chatServer
 
 object ChatHistory: ChatHistoryObservable {
 
-    private val messages = mutableListOf<ChatMessage>()
+    val messages = mutableListOf<ChatMessage>()
     private val chatObservers = mutableSetOf<ChatHistoryObserver>()
     private var messageHistory:String = ""
 
     override fun insert(message: ChatMessage){
         messages.add(message)
-        TopChatter.getMessage(message)
         notifyObservers(message)
     }
 
