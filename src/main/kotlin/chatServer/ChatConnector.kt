@@ -28,7 +28,7 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
         commandInstructions()
         while(connected) {
             if (inn.hasNextLine()) inp = inn.nextLine() else closeClientConnection()
-            if (isJsonString(inp) && inp.isNotEmpty()) {
+            if (isJsonString(inp) && inp.isNotEmpty() && connected) {
                 val message = json.parse<ChatMessage>(inp)
                 interpretInput(message)
             } else nothingHappens()
@@ -66,26 +66,25 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
     private fun askUserToSignIn(message: ChatMessage){
         if (message.command == ":user"){
             userName = message.userName
-            if (Users.checkIfUserExist(userName)){
-                out.println("User name $userName is taken: Try a different user name: ")
-            }
+            if (Users.checkIfUserExist(userName)){nothingHappens()}
             else{
                 signedIn = true
                 println("User $userName has signed in")
                 ChatHistory.insert(message)
                 out.println("User set to $userName.")
                 Users.addUser(userName)
-
             }
         }
         else {nothingHappens()}
     }
     @ImplicitReflectionSerializer
     private fun ifUserHasSignedIn(message:ChatMessage){
-        when{
-            message.command.startsWith(":")-> handleCommand(message.command)
-            message.userName == this.userName -> ChatHistory.insert(message)
-            }
+        if (message.command.startsWith(":") && message.userName == this.userName){
+            ChatHistory.insert(message)
+            handleCommand(message.command)
+        }
+        else if (message.userName == this.userName && !message.command.startsWith(":"))
+            ChatHistory.insert(message)
 
     }
     private fun handleCommand(command:String) {
@@ -102,6 +101,8 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
         if(userName.isNotEmpty()){println("lost client connection to $userName")}
         else {println("lost client connection")}
         Users.removeUser(userName)
+        connected = false
+        out.close()
         socket.close()
     }
 
