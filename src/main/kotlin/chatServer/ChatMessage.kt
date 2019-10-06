@@ -6,8 +6,8 @@ import java.util.*
 
 
 @Serializable
-class ChatMessage (val command:String,
-                   private val message: String,
+class ChatMessage ( var command:String,
+                    private val message: String,
                    val userName:String,
                    private val dateAndTime:Long = System.currentTimeMillis()
 ){
@@ -15,7 +15,7 @@ class ChatMessage (val command:String,
     //message structure
     override fun toString(): String {
         val date = Date(dateAndTime)
-        return "$message from $userName on $date"
+        return "$message from $userName at $date"
     }
 }
 

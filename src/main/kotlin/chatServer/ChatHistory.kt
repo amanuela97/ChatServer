@@ -22,7 +22,7 @@ object ChatHistory: ChatHistoryObservable {
 
     override fun notifyObservers(message: ChatMessage) {
         // notify all except the person sending the message
-        chatObservers.forEach{if (it.getUserName() != message.userName ) it.newMessage(message)}
+        chatObservers.forEach{it.newMessage(message)}
     }
 
     override fun toString(): String{

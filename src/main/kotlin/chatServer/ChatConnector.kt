@@ -25,7 +25,6 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
         ChatHistory.registerObserver(this)
         ChatConsole.register()
         TopChatter.register()
-        commandInstructions()
         while(connected) {
             if (inn.hasNextLine()) inp = inn.nextLine() else closeClientConnection()
             if (isJsonString(inp) && inp.isNotEmpty() && connected) {
@@ -36,8 +35,6 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
     }
 
     private fun nothingHappens(){}
-
-    override fun getUserName() = userName
 
     @ImplicitReflectionSerializer
     fun isJsonString(str:String): Boolean {
@@ -50,7 +47,12 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
     }
 
     override fun newMessage(message: ChatMessage) {
-        if(Users.checkIfUserExist(message.userName)) out.println("$message")
+        if(this.userName == message.userName) {
+            out.println("@ $message")
+        } else{
+            out.println("$message")
+        }
+
     }
 
     @ImplicitReflectionSerializer
@@ -61,6 +63,7 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
         else{
             ifUserHasSignedIn(message)
         }
+
     }
 
     private fun askUserToSignIn(message: ChatMessage){
@@ -70,29 +73,26 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
             else{
                 signedIn = true
                 println("User $userName has signed in")
-                ChatHistory.insert(message)
-                out.println("User set to $userName.")
+                out.println(":User set to $userName.")
                 Users.addUser(userName)
             }
         }
-        else {nothingHappens()}
     }
     @ImplicitReflectionSerializer
     private fun ifUserHasSignedIn(message:ChatMessage){
-        if (message.command.startsWith(":") && message.userName == this.userName){
-            ChatHistory.insert(message)
+        if (message.command.isNotEmpty() && message.userName == this.userName){
             handleCommand(message.command)
         }
-        else if (message.userName == this.userName && !message.command.startsWith(":"))
+        else if (message.userName == this.userName && message.command.isEmpty())
             ChatHistory.insert(message)
 
     }
     private fun handleCommand(command:String) {
         when(command) {
-            ":users" -> out.println(Users.toString())
-            ":messages" -> out.println(ChatHistory.toString())
-            ":exit" -> closeClientConnection()
-            ":user" -> out.println("user already set to $userName")
+            "users" -> out.println(Users.toString())
+            "messages" -> out.println(ChatHistory.toString())
+            "exit" -> closeClientConnection()
+            "user" -> out.println("user already set to $userName")
             else -> out.println("Unknown command: $command")
         }
     }
@@ -106,16 +106,16 @@ class ChatConnector(input: InputStream, output: OutputStream, private var socket
         socket.close()
     }
 
-    private fun commandInstructions() {
+    /*private fun commandInstructions() {
         val message =
             "Welcome to chat messenger\r\n" +
-            "To set user name, use command :user username\r\n" +
-                    "To see users, use command :users\r\n" +
-                    "To see history messages, use command :messages\r\n" +
-                    "To exit, use command :exit\r\n"
+            "To set user name, use command [user] username\r\n" +
+                    "To see users, use command [users]\r\n" +
+                    "To see history messages, use command [messages]\r\n" +
+                    "To exit, use command [exit]\r\n"
 
         out.println(message)
-    }
+    }*/
 
 
 

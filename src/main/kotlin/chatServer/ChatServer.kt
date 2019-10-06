@@ -4,7 +4,7 @@ import java.lang.Exception
 import java.net.ServerSocket
 
 class ChatServer {
-    private val serverSocket = ServerSocket(30000,2)
+    private val serverSocket = ServerSocket(30003,5)
 
     fun server(){
         println("ChatServer is now listening on port " + serverSocket.localPort)

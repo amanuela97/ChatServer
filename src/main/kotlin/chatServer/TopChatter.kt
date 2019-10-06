@@ -9,14 +9,9 @@ object TopChatter: ChatHistoryObserver {
         ChatHistory.registerObserver(this)
     }
 
-    override fun getUserName(): String {
-        return "TopChatter"
-    }
+    override fun newMessage(message: ChatMessage) {}
 
-
-    override fun newMessage(message: ChatMessage) {
-    }
-
+    //print 4 top chatters to the console every time a user is added to the users list
     fun activeUsers(){
         println("Top Chatters:")
         Users.userNames.forEach { username -> ChatHistory.messages.forEach {message ->
