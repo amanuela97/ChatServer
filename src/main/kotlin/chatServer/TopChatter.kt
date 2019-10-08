@@ -4,6 +4,7 @@ object TopChatter: ChatHistoryObserver {
 
     private var chatters = mutableMapOf<String,Int>()
     private var count = 0
+    var chattersList = ""
 
     fun register(){
         ChatHistory.registerObserver(this)
@@ -21,7 +22,9 @@ object TopChatter: ChatHistoryObserver {
             count = 0
         }
         val sortedChatters = chatters.toList().sortedByDescending{ (_, value) -> value }.take(4).toMap()
+        chattersList = ""
         for (chatter in sortedChatters){
+            chattersList += "$chatter\r\n"
             println("${chatter.key} sent ${chatter.value} message")
         }
     }

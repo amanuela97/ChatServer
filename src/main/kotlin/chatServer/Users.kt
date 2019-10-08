@@ -3,10 +3,9 @@ package chatServer
 object Users {
 
     var userNames = HashSet<String>()
-    private var userList:String = ""
 
     fun addUser(name: String){
-        if(!checkIfUserExist(name)){
+        if(!userNames.contains(name)){
             userNames.add(name)
             TopChatter.activeUsers()
         }
@@ -23,6 +22,7 @@ object Users {
 
     override fun toString(): String{
         //nicely formatting string
+        var userList = ""
         userNames.forEach { userList += "$it\r\n" }
         return userList
     }

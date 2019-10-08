@@ -5,11 +5,11 @@ object ChatHistory: ChatHistoryObservable {
 
     val messages = mutableListOf<ChatMessage>()
     private val chatObservers = mutableSetOf<ChatHistoryObserver>()
-    private var messageHistory:String = ""
 
     override fun insert(message: ChatMessage){
         messages.add(message)
         notifyObservers(message)
+        TopChatter.activeUsers()
     }
 
     override fun registerObserver(observer: ChatHistoryObserver) {
@@ -27,6 +27,7 @@ object ChatHistory: ChatHistoryObservable {
 
     override fun toString(): String{
         //nicely formatting string
+        var messageHistory = ""
         messages.forEach { messageHistory  += "$it\r\n" }
         return messageHistory
     }
